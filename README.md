@@ -206,32 +206,7 @@ python main.py --headed --wait-verify --max 100
 
 ---
 
-## 五、Excel 字段
-
-| 商品名称 | 商品销量 | 商品链接 | 商品照片 | 商品详情介绍 |
-| --- | --- | --- | --- | --- |
-| product_name | sold_count | product_url | image_url | description |
-
-格式说明：
-
-* **商品销量**：数字。页面上的 `2.1M sold` 存成 `2100000`，`482.0K sold` 存成 `482000`。
-* **商品链接**：可点击的超链接。
-* **商品照片**：自动下载商品图（优先拿原图，通常 2000×2000），用高质量重采样
-  缩放后**内嵌为高清大图（最长边约 260px）居中显示**；图片小于 400px 时会尝试把
-  CDN 链接的尺寸参数改大重新下载；个别图片下载失败时退回「链接文本 + 超链接」。
-* **商品名称**：自动换行显示。
-* **商品详情介绍**：来自商品详情页（PDP）的 "Product description" 区域长文本；
-  每次抓取都会逐个进入 PDP 读取（同时会读取一级类别，用于 `--category` 过滤），
-  所以抓取耗时比纯榜单抓取更长。优先读 PDP 页面源码内嵌 JSON 里的介绍文字，
-  读不到再退回页面 DOM；若描述区只有图片、没有文字，该列会填
-  `（描述为图片，无文字）`。
-* 解析不到的单个字段留空，不影响这一行的其它字段。
-* 另有一张 `抓取说明` 工作表，记录数据来源、导出时间、类别与字段口径。
-* 行顺序 = 榜单页面展示顺序（第一行 = 榜单第一）。
-
----
-
-## 六、抓取逻辑
+## 五、抓取逻辑
 
 1. 启动浏览器：按 `Playwright Chromium → 系统 Chrome → 系统 Edge` 顺序尝试，
    使用固定用户目录（Cookie 复用），设置 `en-US`、美西时区，
@@ -255,29 +230,7 @@ python main.py --headed --wait-verify --max 100
 
 ---
 
-## 七、页面结构说明（实测 2026-09 快照）
-
-抓取规则不是拍脑袋写的，是照着真实 DOM 结构做的，这一段也方便你以后页面改版时排查：
-
-* **商品链接**：卡片里的商品链接形如
-  `https://shop.tiktok.com/us/pdp/<slug>/<product_id>`，注意是 `/pdp/`，
-  不是 `/product/`。程序把 `/pdp/`、`/product`、`/view/product`、`/goods/` 都当作候选。
-* **类名是哈希的**：例如 `item-ZxfZxl`，所以代码里**不写死任何 class**，
-  只依赖结构关系（谁是谁的兄弟节点）、语义属性（`aria-label`、`title`、`alt`）
-  和文本特征（`$`、`sold`、`%`）。
-* **价格被拆成多个节点**：`$16.97` 实际是 `$` / `16` / `.` / `97` 四个 span，
-  所以价格是从"不分行拼接后的卡片文本"里提取的，而行级字段（销量、评分）用的是分行文本。
-* **原价靠划线样式**：原价节点带 `line-through` class，程序用这个判断哪个价格是原价。
-* **评分有两种来源**：优先读 `aria-label="Rating: 4.6 out of 5 stars"`，
-  其次是 `4.6★` 这类文本，最后才用"`xx sold` 上一行的独立数字"兜底。
-* **店铺名在商品名上方的那一块**，程序用"商品链接所在容器的上一个兄弟节点"来定位；
-  部分卡片确实不渲染店铺块，这时店铺列留空。
-* **`View more` 是真正的 `<button>`**，文本就是 `View more`，位于列表底部。
-* **榜单默认口径**：`Best sellers in past 30 Days`，每页 19 个卡片，点 `View more` 追加。
-
----
-
-## 八、异常处理
+## 六、异常处理
 
 | 情况 | 行为 |
 | --- | --- |
@@ -297,31 +250,7 @@ python main.py --headed --wait-verify --max 100
 
 ---
 
-## 九、配置项（config.py）
-
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `URL` | 榜单页地址 | 目标页面 |
-| `MAX_PRODUCTS` | `100` | 默认抓取数量 |
-| `HEADLESS` | `True` | 是否无头运行 |
-| `BROWSER_CHANNELS` | `(None, "chrome", "msedge")` | 浏览器内核尝试顺序 |
-| `USER_AGENT` | `None` | `None` = 用浏览器真实 UA（最安全） |
-| `USE_PERSISTENT_PROFILE` | `True` | 是否复用浏览器用户目录 |
-| `PROFILE_DIR` | `.browser_profile` | 用户目录位置 |
-| `VIEW_MORE_TEXTS` | 中英文多种写法 | `View more` 按钮文本候选 |
-| `DISMISS_TEXTS` | 中英文多种写法 | 弹窗关闭按钮文本候选 |
-| `CATEGORIES` | 12 个一级类目 | 按类别抓取的类目映射表：slug → (category_id, 英文名, 中文名)；类目页 URL 为 `shop.tiktok.com/us/c/<slug>/<id>` |
-| `SECURITY_CHECK_TITLES` / `SECURITY_CHECK_TEXTS` | — | 安全验证页特征（只统计可见元素） |
-| `VERIFY_WAIT_SECONDS` | `0` | 等待人工验证的最长时间；`0` = 不限时 |
-| `AUTO_HEADED_ON_VERIFY` | `True` | 无头被拦时是否自动打开浏览器窗口 |
-| `Timing` | 见文件 | 各种等待、滚动、轮询的时间区间 |
-| `MAX_VIEW_MORE_CLICKS` | `40` | 最多点击次数 |
-| `NO_GROWTH_LIMIT` | `3` | 连续无新增多少轮后停止 |
-| `MAX_SCROLL_STEPS_PER_ROUND` | `25` | 单轮滚动步数上限 |
-
----
-
-## 十、常见问题
+## 七、常见问题
 
 **Q：卡在滑块验证 / 划好几次不通过 / 窗口突然关了？**
 
@@ -342,9 +271,9 @@ python main.py --headed --wait-verify --max 100
 先跑 `python inspect_page.py --headed`，看 `debug/` 里的截图和打印出来的卡片样例。
 页面改版时，按"第七节"的规则调整 `page_parser.py` 里的启发式判断即可。
 
-**Q：只抓到 19 个（或几十个）就停了？**
+**Q：只抓到 15 个（或几十个）就停了？**
 
-19 是首屏卡片数。如果点了 `View more` 却没加载出新商品，通常是触发了风控，
+15 是首屏卡片数。如果点了 `View more` 却没加载出新商品，通常是触发了风控，
 或者页面加载变慢：可以把 `config.Timing` 里的等待时间调大、
 把 `NO_GROWTH_LIMIT` 调到 4~5，或者用 `--headed` 观察点击后到底发生了什么。
 
@@ -357,14 +286,9 @@ python main.py --headed --wait-verify --max 100
 
 不需要，公开榜单页无需登录。
 
-**Q：为什么不用固定 CSS 选择器？**
-
-因为 TikTok 的类名是构建时哈希出来的（`item-ZxfZxl` 这种），
-版本一更新就全变；用结构 + 语义 + 文本特征定位才稳。
-
 ---
 
-## 十一、后续可以扩展的方向
+## 八、后续可以扩展的方向
 
 * GUI 界面（PySide6 / Tkinter）
 * 自动定时运行（Windows 任务计划程序 / cron）
@@ -375,9 +299,9 @@ python main.py --headed --wait-verify --max 100
 
 ---
 
-## 十二、免责声明
+## 九、免责声明
 
 本工具仅用于个人数据研究与选品分析。请遵守目标网站的服务条款、
 robots 协议与所在地法律法规，不要用于高频、大规模或商业性的数据抓取。
-程序不会绕过任何安全验证，遇到人机校验会停下来交由使用者本人处理。
+程序不会绕过任何安全验证，遇到人机校验会停下来交由使用者本人处理，本质上还是人工访问。
 因使用本工具产生的任何后果由使用者自行承担。
