@@ -20,6 +20,7 @@ TikTokScraper/
 ├── config.py          # URL、最大数量、等待时间、按钮文案等全部配置
 ├── inspect_page.py    # 页面结构诊断脚本（先跑它，确认 DOM 再正式抓）
 ├── selftest.py        # 离线自检（不联网，验证依赖 / 解析 / 导出是否正常）
+├── 启动Chrome.bat     # 一键启动带调试端口的 Chrome（CDP 模式用）
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -83,6 +84,17 @@ python inspect_page.py --headed
 ```bash
 python main.py
 ```
+
+### CDP 模式：连接已有 Chrome（推荐）
+
+脚本默认会自己启动一个浏览器。如果你想用自己手动开的 Chrome（比如已经登录了 TikTok、装了插件），用 CDP 模式：
+
+1. 双击运行 `启动Chrome.bat`，会打开一个带调试端口的 Chrome
+2. 在这个 Chrome 里手动完成安全验证、安装好「Tiktok选品助手」插件
+3. 保持这个 Chrome 窗口开着
+4. 另开终端运行 `python main.py`，脚本会自动连接到这个 Chrome
+
+这样插件注入的上架时间数据才能被读到。
 
 | 参数 | 说明 |
 | --- | --- |
